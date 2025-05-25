@@ -1,0 +1,18 @@
+﻿# node_modules: npm依存ライブラリ
+node_modules/
+
+# VSCodeの個人設定（任意）
+.vscode/
+
+# 拡張ビルド成果物
+*.vsix
+
+# TypeScriptコンパイル成果物
+out/
+dist/
+*.js
+*.js.map
+
+# OS系
+.DS_Store
+Thumbs.db

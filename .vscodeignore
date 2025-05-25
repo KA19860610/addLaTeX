@@ -1,0 +1,22 @@
+﻿# Git・VSCodeの設定系
+.git/
+.vscode/
+
+# npm依存ライブラリ（ビルド時に自動取得されるため不要）
+node_modules/
+
+# ビルドされたJS・mapファイル
+out/
+dist/
+*.js
+*.js.map
+
+# ビルド成果物
+*.vsix
+
+# OSやエディタのゴミ
+.DS_Store
+Thumbs.db
+
+# テストファイル（作ってるなら）
+test/
