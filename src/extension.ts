@@ -5,6 +5,7 @@
 //　.vscode/settings.json が存在しない場合は拡張が自動生成
 //・拡張機能インストール時に "addlatex.mainFile" は設定しない
 //・texファイル保存時に、mainFile が未定義なら「このファイルを設定しますか？」と確認
+//・settings.json に「このファイルは AddLaTeX によって管理されています」旨の note プロパティを追加
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -19,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const rootPath = workspaceFolders[0].uri.fsPath;
     const vscodeDir = path.join(rootPath, '.vscode');
-    const settingsPath = path.join(vscodeDir, 'settings.json');
+    const settingsPath = path.join(vscodeDir, 'AddLaTeXsettings.json');
 
     // TeX Live のインストール確認
     try {
@@ -45,7 +46,10 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         if (!fs.existsSync(settingsPath)) {
-            fs.writeFileSync(settingsPath, '{}');
+            const defaultSettings = {
+                "addlatex.__note": "このファイルは AddLaTeX によって自動生成・管理されています。削除や変更は自己責任で行ってください。"
+            };
+            fs.writeFileSync(settingsPath, JSON.stringify(defaultSettings, null, 4));
         }
     } catch (err) {
         console.error('AddLaTeX 初期化中にエラーが発生したぞ！', err);
@@ -58,6 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (ext !== '.tex') return;
 
         try {
+            if (!fs.existsSync(settingsPath)) return;
             const raw = fs.readFileSync(settingsPath, 'utf8');
             const settings: { [key: string]: any } = JSON.parse(raw);
 
@@ -68,6 +73,9 @@ export function activate(context: vscode.ExtensionContext) {
                 ).then(selection => {
                     if (selection === 'はい') {
                         settings['addlatex.mainFile'] = fileName;
+                        if (!settings['addlatex.__note']) {
+                            settings['addlatex.__note'] = "このファイルは AddLaTeX によって自動生成・管理されています。削除や変更は自己責任で行ってください。";
+                        }
                         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 4));
                         vscode.window.showInformationMessage(`"${fileName}" をビルド対象に設定しました`);
                     }
@@ -80,7 +88,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
 
 //・settings.jsonにLaTeX Workshopの設定として複数レシピを追記
 //・texファイルのコメント以外に日本語が含まれていれば「\documentclass[uplatex,dvipdfmx]{jsarticle}」を
