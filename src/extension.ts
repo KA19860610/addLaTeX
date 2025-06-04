@@ -1,4 +1,6 @@
-﻿/*
+﻿// AddLaTeX: 日本語強制ビルド支援拡張 v1.7（言語自動判定：和文／英文でclass切替）
+
+/*
          ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣀⣤⣤⣤⣤⣀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀
          ⠀⠀⠀⠀⠀⠀⠀⠀⣠⣴⡿⠛⠉⠉⠙⠛⠋⠉⠉⠉⠛⠛⠿⣷⣦⣄⠀⠀⠀⠀⠀
          ⠀⠀⠀⠀⠀⠀⣰⣿⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⣿⣷⡀⠀⠀
@@ -11,7 +13,6 @@
          ⠀⠸⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠻⠿⠿⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⡟
          ⠀⠀⠛⢿⣿⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣴⣿⠟⠁
          ⠀⠀⠀⠀⠉⠛⠿⠿⣶⣦⣤⣀⣀⠀⠀⠀⠀⣀⣀⣤⣴⠶⠿⠿⠛⠋⠉⠀⠀⠀⠀
-                    クソ白人至上主義が
 */
 
 import * as vscode from 'vscode';
@@ -25,11 +26,8 @@ function containsJapanese(text: string): boolean {
 
 function ensureHeaderXeLaTeXCompatible(content: string): string {
     let updated = content;
-
-    // 完全に pLaTeX クラス破壊（jsarticle等）
     updated = updated.replace(/\\documentclass(?:\[[^\]]*\])?\{[^}]+\}/, '\\documentclass{article}');
 
-    // 日本語処理に必要な最低限の XeLaTeX パッケージ構成（Windows環境で確実にあるフォント）
     if (!/\\usepackage\{fontspec\}/.test(updated)) {
         updated = updated.replace(/(\\begin\{document\})/, [
             '\\usepackage{fontspec}',
@@ -40,9 +38,15 @@ function ensureHeaderXeLaTeXCompatible(content: string): string {
         ].join('\n'));
     }
 
-    // otf.sty / zxjatype / zxjafont など pLaTeX 系残骸を完全除去（オプション付きも）
     updated = updated.replace(/\\usepackage(?:\[[^\]]*\])?\{(?:otf|zxjatype|zxjafont)\}\n?/g, '');
+    return updated;
+}
 
+function ensureHeaderEnglishCompatible(content: string): string {
+    let updated = content;
+    updated = updated.replace(/\\documentclass(?:\[[^\]]*\])?\{[^}]+\}/, '\\documentclass{article}');
+    updated = updated.replace(/\\usepackage(?:\[[^\]]*\])?\{(?:otf|zxjatype|zxjafont|fontspec|xeCJK)\}\n?/g, '');
+    updated = updated.replace(/\\set(?:CJK)?mainfont\{[^}]+\}\n?/g, '');
     return updated;
 }
 
@@ -54,15 +58,13 @@ function enforceXeLaTeXSettings() {
     const settingsDir = path.join(rootPath, '.vscode');
     const settingsPath = path.join(settingsDir, 'settings.json');
 
-    if (!fs.existsSync(settingsDir)) {
-        fs.mkdirSync(settingsDir);
-    }
+    if (!fs.existsSync(settingsDir)) fs.mkdirSync(settingsDir);
 
     let settings: any = {};
     if (fs.existsSync(settingsPath)) {
         try {
             settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        } catch (e) {
+        } catch {
             vscode.window.showWarningMessage('settings.json の読み込みに失敗したため初期化するぞい。');
         }
     }
@@ -98,9 +100,15 @@ export function activate(context: vscode.ExtensionContext) {
 
         const content = document.getText();
         const hasJP = containsJapanese(content);
-        const updatedContent = hasJP ? ensureHeaderXeLaTeXCompatible(content) : content;
 
-        if (hasJP && updatedContent !== content) {
+        let updatedContent = content;
+        if (hasJP) {
+            updatedContent = ensureHeaderXeLaTeXCompatible(content);
+        } else {
+            updatedContent = ensureHeaderEnglishCompatible(content);
+        }
+
+        if (updatedContent !== content) {
             const edit = new vscode.WorkspaceEdit();
             const fullRange = new vscode.Range(
                 document.positionAt(0),
@@ -110,7 +118,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.workspace.applyEdit(edit).then(() => {
                 document.save().then(() => {
                     vscode.commands.executeCommand('latex-workshop.build');
-                    vscode.window.showInformationMessage('pLaTeXを完全に駆逐してXeLaTeX構成に変換したぞ！');
+                    vscode.window.showInformationMessage('言語検出に基づいてヘッダーを書き換え、ビルドを実行したぞ！');
                 });
             });
         } else {

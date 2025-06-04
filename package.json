@@ -1,11 +1,11 @@
 {
-  "name": "addlatex",
-  "displayName": "AddLaTeX",
-  "description": "Trigger LaTeX Workshop recipe selection on .tex file save.",
+  "name": "addlatex-xelatex-fucker",
+  "displayName": "AddLaTeX XeLaTeX Fucker",
+  "description": "日本語混入で死ぬLaTeX環境クソ。死ね",
   "version": "0.0.1",
   "publisher": "ka19860610",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
     "Other"
